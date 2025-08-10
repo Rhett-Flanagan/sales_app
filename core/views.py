@@ -102,7 +102,11 @@ def customer_list(request):
     customers = Customer.objects.all()
 
     if query:
-        customers = customers.filter(Q(Name__icontains=query) | Q(Account__icontains=query))
+        search_terms = query.split()
+        q_objects = Q()
+        for term in search_terms:
+            q_objects |= Q(Name__icontains=term) | Q(Account__icontains=term)
+        customers = customers.filter(q_objects)
 
     # Apply sorting
     if order == 'desc':
@@ -118,13 +122,34 @@ def customer_list(request):
 
 def transaction_list(request):
     query = request.GET.get('q')
+    start_date_str = request.GET.get('start_date')
+    end_date_str = request.GET.get('end_date')
     sort_by = request.GET.get('sort_by', 'Number') # Default sort by Number
     order = request.GET.get('order', 'asc') # Default order ascending
 
     transactions = Transaction.objects.all()
 
     if query:
-        transactions = transactions.filter(Q(Account__Account__icontains=query) | Q(Amount__icontains=query) | Q(DC__icontains=query))
+        search_terms = query.split()
+        q_objects = Q()
+        for term in search_terms:
+            q_objects |= Q(Account__Account__icontains=term) | Q(Amount__icontains=term) | Q(DC__icontains=term) | Q(Reference__icontains=term)
+        transactions = transactions.filter(q_objects)
+
+    if start_date_str:
+        try:
+            start_date = timezone.datetime.strptime(start_date_str, '%Y-%m-%d')
+            transactions = transactions.filter(Date__gte=start_date)
+        except ValueError:
+            pass # Handle invalid date format silently or raise an error
+
+    if end_date_str:
+        try:
+            end_date = timezone.datetime.strptime(end_date_str, '%Y-%m-%d')
+            # To include the entire end day, add one day and search for less than that date
+            transactions = transactions.filter(Date__lt=end_date + timezone.timedelta(days=1))
+        except ValueError:
+            pass # Handle invalid date format silently or raise an error
 
     # Apply sorting
     if order == 'desc':
@@ -134,6 +159,8 @@ def transaction_list(request):
     return render(request, 'core/transaction_list.html', {
         'transactions': transactions,
         'query': query,
+        'start_date': start_date_str,
+        'end_date': end_date_str,
         'sort_by': sort_by.replace('-', ''), # Pass original field name to template
         'order': order
     })

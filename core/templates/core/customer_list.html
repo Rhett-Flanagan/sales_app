@@ -8,7 +8,7 @@
     <a href="{% url 'customer_add' %}" class="add-button">Add New Customer</a>
 
     <form method="GET" action="{% url 'customer_list' %}" class="search-form">
-        <input type="text" name="q" placeholder="Search by Name or Account" value="{{ query|default_if_none:'' }}">
+        <input type="text" name="q" placeholder="Search by Name or Account (multiple terms will AND)" value="{{ query|default_if_none:'' }}">
         <button type="submit">Search</button>
     </form>
 
