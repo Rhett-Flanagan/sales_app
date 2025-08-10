@@ -2,6 +2,7 @@ from django.shortcuts import render
 from django.views.generic import CreateView, UpdateView, DeleteView, ListView
 from django.urls import reverse_lazy
 from core.models import Customer, Transaction
+from django.db.models import Q
 
 class CustomerCreateView(CreateView):
     model = Customer
@@ -38,9 +39,15 @@ class TransactionDeleteView(DeleteView):
     success_url = reverse_lazy('transaction_list')
 
 def customer_list(request):
+    query = request.GET.get('q')
     customers = Customer.objects.all()
-    return render(request, 'core/customer_list.html', {'customers': customers})
+    if query:
+        customers = customers.filter(Q(Name__icontains=query) | Q(Account__icontains=query))
+    return render(request, 'core/customer_list.html', {'customers': customers, 'query': query})
 
 def transaction_list(request):
+    query = request.GET.get('q')
     transactions = Transaction.objects.all()
-    return render(request, 'core/transaction_list.html', {'transactions': transactions})
+    if query:
+        transactions = transactions.filter(Q(Account__Account__icontains=query) | Q(Amount__icontains=query) | Q(DC__icontains=query))
+    return render(request, 'core/transaction_list.html', {'transactions': transactions, 'query': query})
