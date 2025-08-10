@@ -34,6 +34,14 @@
             border: 1px solid #ddd;
             border-radius: 4px;
         }
+        .read-only-field {
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #eee;
+            background-color: #f9f9f9;
+            border-radius: 4px;
+            color: #555;
+        }
         button {
             background-color: #4CAF50;
             color: white;
@@ -59,7 +67,23 @@
 
     <form method="post">
         {% csrf_token %}
-        {{ form.as_p }}
+        {{ form.non_field_errors }}
+        {% if form.instance.pk %}
+            <p>
+                <label>Account:</label>
+                <span class="read-only-field">{{ form.instance.Account }}</span>
+            </p>
+            <p>
+                <label for="id_Name">Name:</label>
+                {{ form.Name }}
+            </p>
+            <p>
+                <label>Balance:</label>
+                <span class="read-only-field">{{ form.instance.Balance }}</span>
+            </p>
+        {% else %}
+            {{ form.as_p }}
+        {% endif %}
         <button type="submit">Save</button>
     </form>
     <p><a href="{% url 'customer_list' %}">Back to Customer List</a></p>

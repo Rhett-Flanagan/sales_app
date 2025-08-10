@@ -3,6 +3,7 @@ from django.views.generic import CreateView, UpdateView, DeleteView, ListView
 from django.urls import reverse_lazy
 from core.models import Customer, Transaction
 from django.db.models import Q
+from core.forms import CustomerForm
 
 class CustomerCreateView(CreateView):
     model = Customer
@@ -12,7 +13,7 @@ class CustomerCreateView(CreateView):
 
 class CustomerUpdateView(UpdateView):
     model = Customer
-    fields = ['Account', 'Name', 'Balance']
+    form_class = CustomerForm
     template_name = 'core/customer_form.html'
     success_url = reverse_lazy('customer_list')
 
