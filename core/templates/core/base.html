@@ -68,10 +68,10 @@
             background-color: #0056b3;
         }
 
-        /* General grid styles */
-        .customer-grid,
-        .transaction-grid {
+        /* Specific grid styles */
+        .customer-grid {
             display: grid;
+            grid-template-columns: repeat(4, 1fr); /* 4 columns for Account, Name, Balance, Actions */
             border: 1px solid #ddd;
             border-collapse: collapse;
             margin-top: 20px;
@@ -79,14 +79,27 @@
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
 
-        .customer-grid {
-            grid-template-columns: repeat(4, 1fr); /* 4 columns for Account, Name, Balance, Actions */
-        }
-
         .transaction-grid {
-            grid-template-columns: repeat(6, 1fr); /* 6 columns for Number, Account, Date, Amount, Type, Actions */
+            display: grid;
+            grid-template-columns: repeat(7, 1fr); /* 7 columns for Number, Account, Date, Amount, Type, Reference, Actions */
+            border: 1px solid #ddd;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
 
+        .enquiry-transaction-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr); /* 5 columns for Number, Reference, Date, Amount, Type */
+            border: 1px solid #ddd;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        /* General grid item styles */
         .grid-header,
         .grid-row {
             display: contents; /* Allows children to be direct grid items */
@@ -145,6 +158,7 @@
     <div class="navbar">
         <a href="{% url 'customer_list' %}">Customers</a>
         <a href="{% url 'transaction_list' %}">Transactions</a>
+        <a href="{% url 'enquiry_customer_list' %}">Enquiries</a>
         <a href="{% url 'admin:index' %}">Admin</a>
     </div>
 

@@ -6,7 +6,6 @@
     <h1>Transaction List</h1>
 
     <a href="{% url 'transaction_add' %}" class="add-button">Add New Transaction</a>
-    <a href="{% url 'print_transactions' %}{% if query %}?q={{ query }}{% endif %}{% if sort_by %}&sort_by={{ sort_by }}{% endif %}{% if order %}&order={{ order }}{% endif %}" class="add-button" style="background-color: #6c757d;">Print Transactions</a>
 
     <form method="GET" action="{% url 'transaction_list' %}" class="search-form">
         <input type="text" name="q" placeholder="Search by Account, Amount, or Type" value="{{ query|default_if_none:'' }}">
@@ -19,6 +18,11 @@
             <div>
                 <a href="{% url 'transaction_list' %}?sort_by=Number&order={% if sort_by == 'Number' and order == 'asc' %}desc{% else %}asc{% endif %}{% if query %}&q={{ query }}{% endif %}">
                     Number {% if sort_by == 'Number' %}{% if order == 'asc' %}▲{% else %}▼{% endif %}{% endif %}
+                </a>
+            </div>
+            <div>
+                <a href="{% url 'transaction_list' %}?sort_by=Reference&order={% if sort_by == 'Reference' and order == 'asc' %}desc{% else %}asc{% endif %}{% if query %}&q={{ query }}{% endif %}">
+                    Reference {% if sort_by == 'Reference' %}{% if order == 'asc' %}▲{% else %}▼{% endif %}{% endif %}
                 </a>
             </div>
             <div>
@@ -41,17 +45,16 @@
                     Type (D/C) {% if sort_by == 'DC' %}{% if order == 'asc' %}▲{% else %}▼{% endif %}{% endif %}
                 </a>
             </div>
-            <div>Reference</div>
             <div>Actions</div>
         </div>
         {% for transaction in transactions %}
         <div class="grid-row">
             <div>{{ transaction.Number }}</div>
+            <div>{{ transaction.Reference }}</div>
             <div>{{ transaction.Account.Account }} ({{ transaction.Account.Name }})</div>
             <div>{{ transaction.Date }}</div>
             <div>{{ transaction.Amount }}</div>
             <div>{{ transaction.get_DC_display }}</div>
-            <div>{{ transaction.Reference }}</div>
             <div class="action-buttons">
                 <a href="{% url 'transaction_edit' transaction.pk %}" class="edit-button">Edit</a>
                 <a href="{% url 'transaction_delete' transaction.pk %}" class="delete-button">Delete</a>

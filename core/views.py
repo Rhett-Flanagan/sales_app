@@ -1,9 +1,10 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from django.views.generic import CreateView, UpdateView, DeleteView, ListView
 from django.urls import reverse_lazy
 from core.models import Customer, Transaction
 from django.db.models import Q
 from core.forms import CustomerForm, TransactionForm
+from django.utils import timezone
 
 class CustomerCreateView(CreateView):
     model = Customer
@@ -83,18 +84,31 @@ def transaction_list(request):
         'order': order
     })
 
-def print_transactions(request):
-    transactions = Transaction.objects.all()
-    # Apply same sorting and filtering as transaction_list for consistency
-    query = request.GET.get('q')
-    sort_by = request.GET.get('sort_by', 'Number')
-    order = request.GET.get('order', 'asc')
+# Removed print_transactions view
 
-    if query:
-        transactions = transactions.filter(Q(Account__Account__icontains=query) | Q(Amount__icontains=query) | Q(DC__icontains=query))
+def enquiry_customer_list(request):
+    customers = Customer.objects.all()
+    return render(request, 'core/enquiry_customer_list.html', {'customers': customers})
 
+def enquiry_transaction_details(request, account_number):
+    customer = get_object_or_404(Customer, Account=account_number)
+    
+    sort_by = request.GET.get('sort_by', '-Date') # Default sort by Date descending
+    order = request.GET.get('order', 'asc') # Default order ascending (will be overridden by -Date initially)
+
+    transactions = Transaction.objects.filter(Account=customer)
+
+    # Apply sorting
     if order == 'desc':
-        sort_by = '-' + sort_by
+        sort_by = '-' + sort_by.replace('-', '') # Ensure it's descending
+    else:
+        sort_by = sort_by.replace('-', '') # Ensure it's ascending
+
     transactions = transactions.order_by(sort_by)
 
-    return render(request, 'core/print_transactions.html', {'transactions': transactions})
+    return render(request, 'core/enquiry_transaction_details.html', {
+        'customer': customer,
+        'transactions': transactions,
+        'sort_by': sort_by.replace('-', ''), # Pass original field name to template
+        'order': order
+    })
