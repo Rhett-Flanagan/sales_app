@@ -1,5 +1,6 @@
 from django.core.management.base import BaseCommand
 from core.models import Customer, Transaction
+from django.utils import timezone
 
 class Command(BaseCommand):
     help = 'Populates the database with sample customer and transaction data.'
@@ -26,29 +27,34 @@ class Command(BaseCommand):
         else:
             self.stdout.write(self.style.WARNING(f'Customer {customer2.Name} already exists.'))
 
-        # Create sample transactions
-        Transaction.objects.create(
-            Account=customer1,
-            Amount=100.00,
-            DC='D',
-            Reference='REF0000001' # Added Reference field
-        )
-        self.stdout.write(self.style.SUCCESS(f'Created transaction for {customer1.Name}'))
+        # Generate unique references for transactions
+        next_ref_num = Transaction.objects.count() + 1
 
         Transaction.objects.create(
             Account=customer1,
-            Amount=50.00,
-            DC='C',
-            Reference='REF0000002' # Added Reference field
+            Date=timezone.now(), # Added Date field
+            Amount=100.00,
+            DC='D',
+            Reference=f'INV{next_ref_num:07d}' # Added Reference field with unique value
         )
         self.stdout.write(self.style.SUCCESS(f'Created transaction for {customer1.Name}'))
+        next_ref_num += 1
+
+        Transaction.objects.create(
+            Account=customer1,
+            Date=timezone.now(), # Added Date field
+            Amount=50.00,
+            DC='C',
+            Reference=f'INV{next_ref_num:07d}' # Added Reference field with unique value
+        )
+        self.stdout.write(self.style.SUCCESS(f'Created transaction for {customer1.Name}'))
+        next_ref_num += 1
 
         Transaction.objects.create(
             Account=customer2,
+            Date=timezone.now(), # Added Date field
             Amount=200.00,
             DC='D',
-            Reference='REF0000003' # Added Reference field
+            Reference=f'INV{next_ref_num:07d}' # Added Reference field with unique value
         )
-        self.stdout.write(self.style.SUCCESS(f'Created transaction for {customer2.Name}'))
-
         self.stdout.write(self.style.SUCCESS('Sample data population complete.'))

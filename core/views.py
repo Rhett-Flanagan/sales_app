@@ -82,3 +82,19 @@ def transaction_list(request):
         'sort_by': sort_by.replace('-', ''), # Pass original field name to template
         'order': order
     })
+
+def print_transactions(request):
+    transactions = Transaction.objects.all()
+    # Apply same sorting and filtering as transaction_list for consistency
+    query = request.GET.get('q')
+    sort_by = request.GET.get('sort_by', 'Number')
+    order = request.GET.get('order', 'asc')
+
+    if query:
+        transactions = transactions.filter(Q(Account__Account__icontains=query) | Q(Amount__icontains=query) | Q(DC__icontains=query))
+
+    if order == 'desc':
+        sort_by = '-' + sort_by
+    transactions = transactions.order_by(sort_by)
+
+    return render(request, 'core/print_transactions.html', {'transactions': transactions})

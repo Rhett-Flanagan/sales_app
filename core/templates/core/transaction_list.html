@@ -6,6 +6,7 @@
     <h1>Transaction List</h1>
 
     <a href="{% url 'transaction_add' %}" class="add-button">Add New Transaction</a>
+    <a href="{% url 'print_transactions' %}{% if query %}?q={{ query }}{% endif %}{% if sort_by %}&sort_by={{ sort_by }}{% endif %}{% if order %}&order={{ order }}{% endif %}" class="add-button" style="background-color: #6c757d;">Print Transactions</a>
 
     <form method="GET" action="{% url 'transaction_list' %}" class="search-form">
         <input type="text" name="q" placeholder="Search by Account, Amount, or Type" value="{{ query|default_if_none:'' }}">
@@ -15,11 +16,31 @@
     {% if transactions %}
     <div class="transaction-grid">
         <div class="grid-header">
-            <div>Number</div>
-            <div>Account</div>
-            <div>Date</div>
-            <div>Amount</div>
-            <div>Type (D/C)</div>
+            <div>
+                <a href="{% url 'transaction_list' %}?sort_by=Number&order={% if sort_by == 'Number' and order == 'asc' %}desc{% else %}asc{% endif %}{% if query %}&q={{ query }}{% endif %}">
+                    Number {% if sort_by == 'Number' %}{% if order == 'asc' %}▲{% else %}▼{% endif %}{% endif %}
+                </a>
+            </div>
+            <div>
+                <a href="{% url 'transaction_list' %}?sort_by=Account__Account&order={% if sort_by == 'Account__Account' and order == 'asc' %}desc{% else %}asc{% endif %}{% if query %}&q={{ query }}{% endif %}">
+                    Account {% if sort_by == 'Account__Account' %}{% if order == 'asc' %}▲{% else %}▼{% endif %}{% endif %}
+                </a>
+            </div>
+            <div>
+                <a href="{% url 'transaction_list' %}?sort_by=Date&order={% if sort_by == 'Date' and order == 'asc' %}desc{% else %}asc{% endif %}{% if query %}&q={{ query }}{% endif %}">
+                    Date {% if sort_by == 'Date' %}{% if order == 'asc' %}▲{% else %}▼{% endif %}{% endif %}
+                </a>
+            </div>
+            <div>
+                <a href="{% url 'transaction_list' %}?sort_by=Amount&order={% if sort_by == 'Amount' and order == 'asc' %}desc{% else %}asc{% endif %}{% if query %}&q={{ query }}{% endif %}">
+                    Amount {% if sort_by == 'Amount' %}{% if order == 'asc' %}▲{% else %}▼{% endif %}{% endif %}
+                </a>
+            </div>
+            <div>
+                <a href="{% url 'transaction_list' %}?sort_by=DC&order={% if sort_by == 'DC' and order == 'asc' %}desc{% else %}asc{% endif %}{% if query %}&q={{ query }}{% endif %}">
+                    Type (D/C) {% if sort_by == 'DC' %}{% if order == 'asc' %}▲{% else %}▼{% endif %}{% endif %}
+                </a>
+            </div>
             <div>Reference</div>
             <div>Actions</div>
         </div>
