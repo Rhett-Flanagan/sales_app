@@ -1,0 +1,30 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Enquiry - Select Customer{% endblock %}
+
+{% block content %}
+    <h1>Enquiry - Select Customer</h1>
+
+    {% if customers %}
+    <div class="customer-grid">
+        <div class="grid-header">
+            <div>Account</div>
+            <div>Name</div>
+            <div>Balance</div>
+            <div>Actions</div>
+        </div>
+        {% for customer in customers %}
+        <div class="grid-row">
+            <div>{{ customer.Account }}</div>
+            <div>{{ customer.Name }}</div>
+            <div {% if customer.Balance < 0 %}class="negative-balance"{% endif %}>{{ customer.Balance }}</div>
+            <div class="action-buttons">
+                <a href="{% url 'enquiry_transaction_details' customer.Account %}" class="edit-button">View Transactions</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p>No customers found for enquiry.</p>
+    {% endif %}
+{% endblock %}

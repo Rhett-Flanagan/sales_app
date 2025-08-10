@@ -1,9 +1,10 @@
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.views.generic import CreateView, UpdateView, DeleteView, ListView
 from django.urls import reverse_lazy
 from core.models import Customer, Transaction
 from django.db.models import Q
 from core.forms import CustomerForm, TransactionForm
+from django.forms import formset_factory
 from django.utils import timezone
 
 class CustomerCreateView(CreateView):
@@ -29,16 +30,69 @@ class TransactionCreateView(CreateView):
     template_name = 'core/transaction_form.html'
     success_url = reverse_lazy('transaction_list')
 
+    def form_valid(self, form):
+        # Save the transaction first to get an instance
+        self.object = form.save()
+        
+        # Update customer balance
+        customer = self.object.Account
+        if self.object.DC == 'D':
+            customer.Balance += self.object.Amount
+        elif self.object.DC == 'C':
+            customer.Balance -= self.object.Amount
+        customer.save()
+
+        return super().form_valid(form)
+
 class TransactionUpdateView(UpdateView):
     model = Transaction
     form_class = TransactionForm # Use custom form
     template_name = 'core/transaction_form.html'
     success_url = reverse_lazy('transaction_list')
 
+    def form_valid(self, form):
+        # Get the original transaction object before saving changes
+        original_transaction = self.get_object()
+
+        # Save the updated transaction
+        self.object = form.save()
+
+        # Revert original transaction's impact on old customer's balance
+        original_customer = original_transaction.Account
+        if original_transaction.DC == 'D':
+            original_customer.Balance -= original_transaction.Amount
+        elif original_transaction.DC == 'C':
+            original_customer.Balance += original_transaction.Amount
+        original_customer.save()
+
+        # Apply new transaction's impact on new customer's balance
+        new_customer = self.object.Account
+        if self.object.DC == 'D':
+            new_customer.Balance += self.object.Amount
+        elif self.object.DC == 'C':
+            new_customer.Balance -= self.object.Amount
+        new_customer.save()
+
+        return super().form_valid(form)
+
 class TransactionDeleteView(DeleteView):
     model = Transaction
     template_name = 'core/transaction_confirm_delete.html'
     success_url = reverse_lazy('transaction_list')
+
+    def form_valid(self, form):
+        # Get the transaction object before deleting
+        transaction_to_delete = self.get_object()
+        customer = transaction_to_delete.Account
+
+        # Revert the transaction's impact on the customer's balance
+        if transaction_to_delete.DC == 'D':
+            customer.Balance -= transaction_to_delete.Amount
+        elif transaction_to_delete.DC == 'C':
+            customer.Balance += transaction_to_delete.Amount
+        customer.save()
+
+        return super().form_valid(form)
 
 def customer_list(request):
     query = request.GET.get('q')
@@ -112,3 +166,30 @@ def enquiry_transaction_details(request, account_number):
         'sort_by': sort_by.replace('-', ''), # Pass original field name to template
         'order': order
     })
+
+def bulk_add_transactions(request):
+    num_forms = request.GET.get('num_forms', 3) # Default to 3 forms
+    try:
+        num_forms = int(num_forms)
+    except ValueError:
+        num_forms = 3 # Fallback if not a valid number
+
+    DynamicTransactionFormSet = formset_factory(TransactionForm, extra=num_forms)
+
+    if request.method == 'POST':
+        formset = DynamicTransactionFormSet(request.POST)
+        if formset.is_valid():
+            for form in formset:
+                if form.has_changed(): # Only process forms that have data
+                    transaction = form.save(commit=False)
+                    customer = transaction.Account
+                    if transaction.DC == 'D':
+                        customer.Balance += transaction.Amount
+                    elif transaction.DC == 'C':
+                        customer.Balance -= transaction.Amount
+                    customer.save()
+                    transaction.save()
+            return redirect('transaction_list')
+    else:
+        formset = DynamicTransactionFormSet()
+    return render(request, 'core/bulk_add_transactions.html', {'formset': formset, 'num_forms': num_forms})

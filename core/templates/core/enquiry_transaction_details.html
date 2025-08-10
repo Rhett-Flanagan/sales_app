@@ -1,0 +1,52 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Enquiry - Transactions for {{ customer.Name }}{% endblock %}
+
+{% block content %}
+    <h1>Transactions for {{ customer.Name }} (Account: {{ customer.Account }})</h1>
+
+    {% if transactions %}
+    <div class="enquiry-transaction-grid">
+        <div class="grid-header">
+            <div>
+                <a href="{% url 'enquiry_transaction_details' customer.Account %}?sort_by=Number&order={% if sort_by == 'Number' and order == 'asc' %}desc{% else %}asc{% endif %}">
+                    Number {% if sort_by == 'Number' %}{% if order == 'asc' %}▲{% else %}▼{% endif %}{% endif %}
+                </a>
+            </div>
+            <div>
+                <a href="{% url 'enquiry_transaction_details' customer.Account %}?sort_by=Reference&order={% if sort_by == 'Reference' and order == 'asc' %}desc{% else %}asc{% endif %}">
+                    Reference {% if sort_by == 'Reference' %}{% if order == 'asc' %}▲{% else %}▼{% endif %}{% endif %}
+                </a>
+            </div>
+            <div>
+                <a href="{% url 'enquiry_transaction_details' customer.Account %}?sort_by=Date&order={% if sort_by == 'Date' and order == 'asc' %}desc{% else %}asc{% endif %}">
+                    Date {% if sort_by == 'Date' %}{% if order == 'asc' %}▲{% else %}▼{% endif %}{% endif %}
+                </a>
+            </div>
+            <div>
+                <a href="{% url 'enquiry_transaction_details' customer.Account %}?sort_by=Amount&order={% if sort_by == 'Amount' and order == 'asc' %}desc{% else %}asc{% endif %}">
+                    Amount {% if sort_by == 'Amount' %}{% if order == 'asc' %}▲{% else %}▼{% endif %}{% endif %}
+                </a>
+            </div>
+            <div>
+                <a href="{% url 'enquiry_transaction_details' customer.Account %}?sort_by=DC&order={% if sort_by == 'DC' and order == 'asc' %}desc{% else %}asc{% endif %}">
+                    Type (D/C) {% if sort_by == 'DC' %}{% if order == 'asc' %}▲{% else %}▼{% endif %}{% endif %}
+                </a>
+            </div>
+        </div>
+        {% for transaction in transactions %}
+        <div class="grid-row">
+            <div>{{ transaction.Number }}</div>
+            <div>{{ transaction.Reference }}</div>
+            <div>{{ transaction.Date }}</div>
+            <div>{{ transaction.Amount }}</div>
+            <div>{{ transaction.get_DC_display }}</div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p>No transactions found for this customer.</p>
+    {% endif %}
+
+    <button type="button" onclick="window.location.href='{% url 'enquiry_customer_list' %}'" class="add-button" style="background-color: #6c757d;">Back to Customer List</button>
+{% endblock %}
