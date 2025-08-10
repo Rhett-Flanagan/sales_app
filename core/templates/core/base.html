@@ -31,7 +31,7 @@
             margin: 20px;
         }
 
-        /* Styles from customer_list.html */
+        /* Styles for buttons and forms */
         .add-button {
             display: inline-block;
             background-color: #28a745;
@@ -68,14 +68,23 @@
             background-color: #0056b3;
         }
 
-        .customer-grid {
+        /* General grid styles */
+        .customer-grid,
+        .transaction-grid {
             display: grid;
-            grid-template-columns: repeat(4, 1fr); /* 4 columns for Account, Name, Balance, Actions */
             border: 1px solid #ddd;
             border-collapse: collapse;
             margin-top: 20px;
             background-color: #fff;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .customer-grid {
+            grid-template-columns: repeat(4, 1fr); /* 4 columns for Account, Name, Balance, Actions */
+        }
+
+        .transaction-grid {
+            grid-template-columns: repeat(6, 1fr); /* 6 columns for Number, Account, Date, Amount, Type, Actions */
         }
 
         .grid-header,

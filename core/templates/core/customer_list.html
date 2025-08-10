@@ -15,16 +15,28 @@
     {% if customers %}
     <div class="customer-grid">
         <div class="grid-header">
-            <div>Account</div>
-            <div>Name</div>
-            <div>Balance</div>
+            <div>
+                <a href="{% url 'customer_list' %}?sort_by=Account&order={% if sort_by == 'Account' and order == 'asc' %}desc{% else %}asc{% endif %}{% if query %}&q={{ query }}{% endif %}">
+                    Account {% if sort_by == 'Account' %}{% if order == 'asc' %}▲{% else %}▼{% endif %}{% endif %}
+                </a>
+            </div>
+            <div>
+                <a href="{% url 'customer_list' %}?sort_by=Name&order={% if sort_by == 'Name' and order == 'asc' %}desc{% else %}asc{% endif %}{% if query %}&q={{ query }}{% endif %}">
+                    Name {% if sort_by == 'Name' %}{% if order == 'asc' %}▲{% else %}▼{% endif %}{% endif %}
+                </a>
+            </div>
+            <div>
+                <a href="{% url 'customer_list' %}?sort_by=Balance&order={% if sort_by == 'Balance' and order == 'asc' %}desc{% else %}asc{% endif %}{% if query %}&q={{ query }}{% endif %}">
+                    Balance {% if sort_by == 'Balance' %}{% if order == 'asc' %}▲{% else %}▼{% endif %}{% endif %}
+                </a>
+            </div>
             <div>Actions</div>
         </div>
         {% for customer in customers %}
         <div class="grid-row">
             <div>{{ customer.Account }}</div>
             <div>{{ customer.Name }}</div>
-            <div>{{ customer.Balance }}</div>
+            <div {% if customer.Balance < 0 %}class="negative-balance"{% endif %}>{{ customer.Balance }}</div>
             <div class="action-buttons">
                 <a href="{% url 'customer_edit' customer.pk %}" class="edit-button">Edit</a>
                 <a href="{% url 'customer_delete' customer.pk %}" class="delete-button">Delete</a>
@@ -35,4 +47,11 @@
     {% else %}
     <p>No customers found.</p>
     {% endif %}
+
+    <style>
+        .negative-balance {
+            color: red;
+            font-weight: bold;
+        }
+    </style>
 {% endblock %}

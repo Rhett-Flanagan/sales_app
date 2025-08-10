@@ -50,9 +50,16 @@
             border-radius: 4px;
             cursor: pointer;
             font-size: 16px;
+            margin-right: 10px; /* Added margin for spacing */
         }
         button:hover {
             background-color: #45a049;
+        }
+        .cancel-button {
+            background-color: #dc3545; /* Red color */
+        }
+        .cancel-button:hover {
+            background-color: #c82333; /* Darker red on hover */
         }
         .errorlist {
             color: red;
@@ -76,15 +83,39 @@
             <p>
                 <label for="id_Name">Name:</label>
                 {{ form.Name }}
+                {% if form.Name.errors %}
+                    <ul class="errorlist">{% for error in form.Name.errors %}<li>{{ error }}</li>{% endfor %}</ul>
+                {% endif %}
             </p>
             <p>
                 <label>Balance:</label>
                 <span class="read-only-field">{{ form.instance.Balance }}</span>
             </p>
         {% else %}
-            {{ form.as_p }}
+            <p>
+                <label for="id_Account">Account:</label>
+                {{ form.Account }}
+                {% if form.Account.errors %}
+                    <ul class="errorlist">{% for error in form.Account.errors %}<li>{{ error }}</li>{% endfor %}</ul>
+                {% endif %}
+            </p>
+            <p>
+                <label for="id_Name">Name:</label>
+                {{ form.Name }}
+                {% if form.Name.errors %}
+                    <ul class="errorlist">{% for error in form.Name.errors %}<li>{{ error }}</li>{% endfor %}</ul>
+                {% endif %}
+            </p>
+            <p>
+                <label for="id_Balance">Balance:</label>
+                {{ form.Balance }}
+                {% if form.Balance.errors %}
+                    <ul class="errorlist">{% for error in form.Balance.errors %}<li>{{ error }}</li>{% endfor %}</ul>
+                {% endif %}
+            </p>
         {% endif %}
-        <button type="submit">Save</button>
+        <button type="submit">Confirm</button>
+        <button type="button" onclick="window.location.href='{% url 'customer_list' %}'" class="cancel-button">Cancel</button>
     </form>
     <p><a href="{% url 'customer_list' %}">Back to Customer List</a></p>
 </body>

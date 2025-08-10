@@ -41,14 +41,44 @@ class TransactionDeleteView(DeleteView):
 
 def customer_list(request):
     query = request.GET.get('q')
+    sort_by = request.GET.get('sort_by', 'Account') # Default sort by Account
+    order = request.GET.get('order', 'asc') # Default order ascending
+
     customers = Customer.objects.all()
+
     if query:
         customers = customers.filter(Q(Name__icontains=query) | Q(Account__icontains=query))
-    return render(request, 'core/customer_list.html', {'customers': customers, 'query': query})
+
+    # Apply sorting
+    if order == 'desc':
+        sort_by = '-' + sort_by
+    customers = customers.order_by(sort_by)
+
+    return render(request, 'core/customer_list.html', {
+        'customers': customers,
+        'query': query,
+        'sort_by': sort_by.replace('-', ''), # Pass original field name to template
+        'order': order
+    })
 
 def transaction_list(request):
     query = request.GET.get('q')
+    sort_by = request.GET.get('sort_by', 'Number') # Default sort by Number
+    order = request.GET.get('order', 'asc') # Default order ascending
+
     transactions = Transaction.objects.all()
+
     if query:
         transactions = transactions.filter(Q(Account__Account__icontains=query) | Q(Amount__icontains=query) | Q(DC__icontains=query))
-    return render(request, 'core/transaction_list.html', {'transactions': transactions, 'query': query})
+
+    # Apply sorting
+    if order == 'desc':
+        sort_by = '-' + sort_by
+    transactions = transactions.order_by(sort_by)
+
+    return render(request, 'core/transaction_list.html', {
+        'transactions': transactions,
+        'query': query,
+        'sort_by': sort_by.replace('-', ''), # Pass original field name to template
+        'order': order
+    })

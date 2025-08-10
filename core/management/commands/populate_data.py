@@ -9,7 +9,7 @@ class Command(BaseCommand):
 
         # Create sample customers
         customer1, created = Customer.objects.get_or_create(
-            Account='ACC001',
+            Account='ACC001234567890', # Updated to 15 chars
             defaults={'Name': 'Alice Smith', 'Balance': 1500.00}
         )
         if created:
@@ -18,7 +18,7 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING(f'Customer {customer1.Name} already exists.'))
 
         customer2, created = Customer.objects.get_or_create(
-            Account='ACC002',
+            Account='ACC002345678901', # Updated to 15 chars
             defaults={'Name': 'Bob Johnson', 'Balance': 250.75}
         )
         if created:
