@@ -3,7 +3,7 @@ from django.views.generic import CreateView, UpdateView, DeleteView, ListView
 from django.urls import reverse_lazy
 from core.models import Customer, Transaction
 from django.db.models import Q
-from core.forms import CustomerForm
+from core.forms import CustomerForm, TransactionForm
 
 class CustomerCreateView(CreateView):
     model = Customer
@@ -24,13 +24,13 @@ class CustomerDeleteView(DeleteView):
 
 class TransactionCreateView(CreateView):
     model = Transaction
-    fields = ['Account', 'Amount', 'DC']
+    form_class = TransactionForm # Use custom form
     template_name = 'core/transaction_form.html'
     success_url = reverse_lazy('transaction_list')
 
 class TransactionUpdateView(UpdateView):
     model = Transaction
-    fields = ['Account', 'Amount', 'DC']
+    form_class = TransactionForm # Use custom form
     template_name = 'core/transaction_form.html'
     success_url = reverse_lazy('transaction_list')
 

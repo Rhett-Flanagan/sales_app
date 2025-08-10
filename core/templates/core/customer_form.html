@@ -18,29 +18,46 @@
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            width: 300px;
+            width: 400px; /* Increased width for better layout */
             margin-top: 20px;
         }
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: bold;
+        .form-grid {
+            display: grid;
+            grid-template-columns: 120px 1fr; /* Label column and input column */
+            gap: 15px; /* Space between rows and columns */
+            align-items: center;
+            margin-bottom: 20px;
         }
-        input[type="text"],
-        input[type="number"] {
-            width: calc(100% - 20px);
+        .form-grid label {
+            text-align: right;
+            padding-right: 10px;
+            margin-bottom: 0; /* Override default label margin */
+        }
+        .form-grid input[type="text"],
+        .form-grid input[type="number"],
+        .form-grid select {
+            width: calc(100% - 20px); /* Adjust width for padding */
             padding: 10px;
-            margin-bottom: 15px;
             border: 1px solid #ddd;
             border-radius: 4px;
+            box-sizing: border-box; /* Include padding in width */
+            margin-bottom: 0; /* Override default input margin */
         }
         .read-only-field {
             padding: 10px;
-            margin-bottom: 15px;
             border: 1px solid #eee;
             background-color: #f9f9f9;
             border-radius: 4px;
             color: #555;
+            width: calc(100% - 20px);
+            box-sizing: border-box;
+        }
+        .errorlist {
+            color: red;
+            list-style-type: none;
+            padding: 0;
+            margin: 5px 0 0 0; /* Adjust margin for errors */
+            grid-column: 2; /* Place errors under the input */
         }
         button {
             background-color: #4CAF50;
@@ -50,22 +67,16 @@
             border-radius: 4px;
             cursor: pointer;
             font-size: 16px;
-            margin-right: 10px; /* Added margin for spacing */
+            margin-right: 10px;
         }
         button:hover {
             background-color: #45a049;
         }
         .cancel-button {
-            background-color: #dc3545; /* Red color */
+            background-color: #dc3545;
         }
         .cancel-button:hover {
-            background-color: #c82333; /* Darker red on hover */
-        }
-        .errorlist {
-            color: red;
-            list-style-type: none;
-            padding: 0;
-            margin-bottom: 10px;
+            background-color: #c82333;
         }
     </style>
 </head>
@@ -75,45 +86,47 @@
     <form method="post">
         {% csrf_token %}
         {{ form.non_field_errors }}
-        {% if form.instance.pk %}
-            <p>
-                <label>Account:</label>
-                <span class="read-only-field">{{ form.instance.Account }}</span>
-            </p>
-            <p>
-                <label for="id_Name">Name:</label>
-                {{ form.Name }}
-                {% if form.Name.errors %}
-                    <ul class="errorlist">{% for error in form.Name.errors %}<li>{{ error }}</li>{% endfor %}</ul>
-                {% endif %}
-            </p>
-            <p>
-                <label>Balance:</label>
-                <span class="read-only-field">{{ form.instance.Balance }}</span>
-            </p>
-        {% else %}
-            <p>
-                <label for="id_Account">Account:</label>
-                {{ form.Account }}
-                {% if form.Account.errors %}
-                    <ul class="errorlist">{% for error in form.Account.errors %}<li>{{ error }}</li>{% endfor %}</ul>
-                {% endif %}
-            </p>
-            <p>
-                <label for="id_Name">Name:</label>
-                {{ form.Name }}
-                {% if form.Name.errors %}
-                    <ul class="errorlist">{% for error in form.Name.errors %}<li>{{ error }}</li>{% endfor %}</ul>
-                {% endif %}
-            </p>
-            <p>
-                <label for="id_Balance">Balance:</label>
-                {{ form.Balance }}
-                {% if form.Balance.errors %}
-                    <ul class="errorlist">{% for error in form.Balance.errors %}<li>{{ error }}</li>{% endfor %}</ul>
-                {% endif %}
-            </p>
-        {% endif %}
+        <div class="form-grid">
+            {% if form.instance.pk %}
+                <div><label>Account:</label></div>
+                <div><span class="read-only-field">{{ form.instance.Account }}</span></div>
+
+                <div><label for="id_Name">Name:</label></div>
+                <div>
+                    {{ form.Name }}
+                    {% if form.Name.errors %}
+                        <ul class="errorlist">{% for error in form.Name.errors %}<li>{{ error }}</li>{% endfor %}</ul>
+                    {% endif %}
+                </div>
+
+                <div><label>Balance:</label></div>
+                <div><span class="read-only-field">{{ form.instance.Balance }}</span></div>
+            {% else %}
+                <div><label for="id_Account">Account:</label></div>
+                <div>
+                    {{ form.Account }}
+                    {% if form.Account.errors %}
+                        <ul class="errorlist">{% for error in form.Account.errors %}<li>{{ error }}</li>{% endfor %}</ul>
+                    {% endif %}
+                </div>
+
+                <div><label for="id_Name">Name:</label></div>
+                <div>
+                    {{ form.Name }}
+                    {% if form.Name.errors %}
+                        <ul class="errorlist">{% for error in form.Name.errors %}<li>{{ error }}</li>{% endfor %}</ul>
+                    {% endif %}
+                </div>
+
+                <div><label for="id_Balance">Balance:</label></div>
+                <div>
+                    {{ form.Balance }}
+                    {% if form.Balance.errors %}
+                        <ul class="errorlist">{% for error in form.Balance.errors %}<li>{{ error }}</li>{% endfor %}</ul>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
         <button type="submit">Confirm</button>
         <button type="button" onclick="window.location.href='{% url 'customer_list' %}'" class="cancel-button">Cancel</button>
     </form>

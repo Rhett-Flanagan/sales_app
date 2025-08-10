@@ -30,21 +30,24 @@ class Command(BaseCommand):
         Transaction.objects.create(
             Account=customer1,
             Amount=100.00,
-            DC='D'
+            DC='D',
+            Reference='REF0000001' # Added Reference field
         )
         self.stdout.write(self.style.SUCCESS(f'Created transaction for {customer1.Name}'))
 
         Transaction.objects.create(
             Account=customer1,
             Amount=50.00,
-            DC='C'
+            DC='C',
+            Reference='REF0000002' # Added Reference field
         )
         self.stdout.write(self.style.SUCCESS(f'Created transaction for {customer1.Name}'))
 
         Transaction.objects.create(
             Account=customer2,
             Amount=200.00,
-            DC='D'
+            DC='D',
+            Reference='REF0000003' # Added Reference field
         )
         self.stdout.write(self.style.SUCCESS(f'Created transaction for {customer2.Name}'))
 

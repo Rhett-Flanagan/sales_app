@@ -15,31 +15,12 @@
     {% if transactions %}
     <div class="transaction-grid">
         <div class="grid-header">
-            <div>
-                <a href="{% url 'transaction_list' %}?sort_by=Number&order={% if sort_by == 'Number' and order == 'asc' %}desc{% else %}asc{% endif %}{% if query %}&q={{ query }}{% endif %}">
-                    Number {% if sort_by == 'Number' %}{% if order == 'asc' %}▲{% else %}▼{% endif %}{% endif %}
-                </a>
-            </div>
-            <div>
-                <a href="{% url 'transaction_list' %}?sort_by=Account__Account&order={% if sort_by == 'Account__Account' and order == 'asc' %}desc{% else %}asc{% endif %}{% if query %}&q={{ query }}{% endif %}">
-                    Account {% if sort_by == 'Account__Account' %}{% if order == 'asc' %}▲{% else %}▼{% endif %}{% endif %}
-                </a>
-            </div>
-            <div>
-                <a href="{% url 'transaction_list' %}?sort_by=Date&order={% if sort_by == 'Date' and order == 'asc' %}desc{% else %}asc{% endif %}{% if query %}&q={{ query }}{% endif %}">
-                    Date {% if sort_by == 'Date' %}{% if order == 'asc' %}▲{% else %}▼{% endif %}{% endif %}
-                </a>
-            </div>
-            <div>
-                <a href="{% url 'transaction_list' %}?sort_by=Amount&order={% if sort_by == 'Amount' and order == 'asc' %}desc{% else %}asc{% endif %}{% if query %}&q={{ query }}{% endif %}">
-                    Amount {% if sort_by == 'Amount' %}{% if order == 'asc' %}▲{% else %}▼{% endif %}{% endif %}
-                </a>
-            </div>
-            <div>
-                <a href="{% url 'transaction_list' %}?sort_by=DC&order={% if sort_by == 'DC' and order == 'asc' %}desc{% else %}asc{% endif %}{% if query %}&q={{ query }}{% endif %}">
-                    Type (D/C) {% if sort_by == 'DC' %}{% if order == 'asc' %}▲{% else %}▼{% endif %}{% endif %}
-                </a>
-            </div>
+            <div>Number</div>
+            <div>Account</div>
+            <div>Date</div>
+            <div>Amount</div>
+            <div>Type (D/C)</div>
+            <div>Reference</div>
             <div>Actions</div>
         </div>
         {% for transaction in transactions %}
@@ -49,6 +30,7 @@
             <div>{{ transaction.Date }}</div>
             <div>{{ transaction.Amount }}</div>
             <div>{{ transaction.get_DC_display }}</div>
+            <div>{{ transaction.Reference }}</div>
             <div class="action-buttons">
                 <a href="{% url 'transaction_edit' transaction.pk %}" class="edit-button">Edit</a>
                 <a href="{% url 'transaction_delete' transaction.pk %}" class="delete-button">Delete</a>

@@ -2,6 +2,7 @@ from django.db import models
 from django.core.validators import RegexValidator
 
 alphanumeric_15_chars = RegexValidator(r'^[0-9a-zA-Z]{15}$', 'Must be exactly 15 alphanumeric characters.')
+alphanumeric_10_chars = RegexValidator(r'^[0-9a-zA-Z]{10}$', 'Must be exactly 10 alphanumeric characters.')
 
 class Customer(models.Model):
     Account = models.CharField(max_length=15, unique=True, validators=[alphanumeric_15_chars])
@@ -19,9 +20,10 @@ class Transaction(models.Model):
 
     Number = models.AutoField(primary_key=True)
     Account = models.ForeignKey(Customer, to_field='Account', on_delete=models.CASCADE)
-    Date = models.DateTimeField(auto_now_add=True)
+    Date = models.DateTimeField()
     Amount = models.DecimalField(max_digits=10, decimal_places=2)
     DC = models.CharField(max_length=1, choices=TRANSACTION_TYPES)
+    Reference = models.CharField(max_length=10, unique=True, validators=[alphanumeric_10_chars])
 
     def __str__(self):
         return f"Transaction {self.Number} for {self.Account.Account}"
