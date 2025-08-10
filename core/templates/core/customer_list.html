@@ -1,0 +1,125 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Customer List{% endblock %}
+
+{% block content %}
+    <h1>Customer List</h1>
+
+    <a href="{% url 'customer_add' %}" class="add-button">Add New Customer</a>
+
+    <form method="GET" action="{% url 'customer_list' %}" class="search-form">
+        <input type="text" name="q" placeholder="Search by Name or Account" value="{{ query|default_if_none:'' }}">
+        <button type="submit">Search</button>
+    </form>
+
+    {% if customers %}
+    <div class="customer-grid">
+        <div class="grid-header">
+            <div>Account</div>
+            <div>Name</div>
+            <div>Balance</div>
+            <div>Actions</div>
+        </div>
+        {% for customer in customers %}
+        <div class="grid-row">
+            <div>{{ customer.Account }}</div>
+            <div>{{ customer.Name }}</div>
+            <div>{{ customer.Balance }}</div>
+            <div class="action-buttons">
+                <a href="{% url 'customer_edit' customer.pk %}" class="edit-button">Edit</a>
+                <a href="{% url 'customer_delete' customer.pk %}" class="delete-button">Delete</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p>No customers found.</p>
+    {% endif %}
+
+    <style>
+        .search-form {
+            margin-bottom: 20px;
+        }
+        .search-form input[type="text"] {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 250px;
+            margin-right: 10px;
+        }
+        .search-form button {
+            padding: 8px 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .search-form button:hover {
+            background-color: #0056b3;
+        }
+
+        .customer-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr); /* 4 columns for Account, Name, Balance, Actions */
+            border: 1px solid #ddd;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .grid-header,
+        .grid-row {
+            display: contents; /* Allows children to be direct grid items */
+        }
+
+        .grid-header > div,
+        .grid-row > div {
+            padding: 8px;
+            border: 1px solid #ddd;
+            text-align: left;
+            display: flex; /* Use flexbox for vertical alignment */
+            align-items: center;
+        }
+
+        .grid-header > div {
+            background-color: #4CAF50;
+            color: white;
+            font-weight: bold;
+        }
+
+        .grid-row:nth-child(even) > div {
+            background-color: #f2f2f2;
+        }
+
+        .grid-row:hover > div {
+            background-color: #ddd;
+        }
+
+        .action-buttons a {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 4px;
+            text-decoration: none;
+            color: white;
+            margin-right: 5px;
+        }
+
+        .edit-button {
+            background-color: #007bff;
+        }
+
+        .edit-button:hover {
+            background-color: #0056b3;
+        }
+
+        .delete-button {
+            background-color: #dc3545;
+        }
+
+        .delete-button:hover {
+            background-color: #c82333;
+        }
+    </style>
+{% endblock %}
