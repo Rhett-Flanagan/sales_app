@@ -2,6 +2,7 @@ from django.test import TestCase
 from core.models import Customer, Transaction
 from decimal import Decimal
 from django.core.exceptions import ValidationError
+from django.utils import timezone
 
 class CustomerModelTest(TestCase):
 
@@ -62,6 +63,7 @@ class TransactionModelTest(TestCase):
     def test_transaction_creation(self):
         transaction = Transaction.objects.create(
             Account=self.customer,
+            Date=timezone.now(),
             Amount=Decimal('150.00'),
             DC='D',
             Reference='REF1234567'
@@ -106,21 +108,24 @@ class TransactionModelTest(TestCase):
     def test_transaction_str(self):
         transaction = Transaction.objects.create(
             Account=self.customer,
+            Date=timezone.now(),
             Amount=Decimal('75.00'),
             DC='C',
             Reference='REF9876543'
         )
-        self.assertEqual(str(transaction), f'Transaction {transaction.Number} for {self.customer.Account.Account}')
+        self.assertEqual(str(transaction), f'Transaction {transaction.Number} for {self.customer.Account}')
 
     def test_transaction_dc_display(self):
         transaction_debit = Transaction.objects.create(
             Account=self.customer,
+            Date=timezone.now(),
             Amount=Decimal('100.00'),
             DC='D',
             Reference='REF1111111'
         )
         transaction_credit = Transaction.objects.create(
             Account=self.customer,
+            Date=timezone.now(),
             Amount=Decimal('200.00'),
             DC='C',
             Reference='REF2222222'

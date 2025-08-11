@@ -6,6 +6,7 @@ from django.db.models import Q
 from core.forms import CustomerForm, TransactionForm
 from django.forms import formset_factory
 from django.utils import timezone
+from decimal import Decimal
 
 class CustomerCreateView(CreateView):
     model = Customer
@@ -66,7 +67,7 @@ class TransactionUpdateView(UpdateView):
         original_customer.save()
 
         # Apply new transaction's impact on new customer's balance
-        new_customer = self.object.Account
+        new_customer = Customer.objects.get(pk=self.object.Account.pk)
         if self.object.DC == 'D':
             new_customer.Balance += self.object.Amount
         elif self.object.DC == 'C':
@@ -206,16 +207,23 @@ def bulk_add_transactions(request):
     if request.method == 'POST':
         formset = DynamicTransactionFormSet(request.POST)
         if formset.is_valid():
+            customer_balances = {}
             for form in formset:
                 if form.has_changed(): # Only process forms that have data
                     transaction = form.save(commit=False)
                     customer = transaction.Account
+                    if customer.pk not in customer_balances:
+                        customer_balances[customer.pk] = customer.Balance
+
                     if transaction.DC == 'D':
-                        customer.Balance += transaction.Amount
+                        customer_balances[customer.pk] += transaction.Amount
                     elif transaction.DC == 'C':
-                        customer.Balance -= transaction.Amount
-                    customer.save()
+                        customer_balances[customer.pk] -= transaction.Amount
                     transaction.save()
+
+            for pk, balance in customer_balances.items():
+                Customer.objects.filter(pk=pk).update(Balance=balance)
+
             return redirect('transaction_list')
     else:
         formset = DynamicTransactionFormSet()
