@@ -15,5 +15,16 @@ class TransactionForm(forms.ModelForm):
             'Date': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
         }
 
+    def clean(self):
+        cleaned_data = super().clean()
+        dc = cleaned_data.get('DC')
+        amount = cleaned_data.get('Amount')
+        customer = cleaned_data.get('Account')
+
+        if dc == 'C' and customer and amount and customer.Balance < amount:
+            raise forms.ValidationError('Customer does not have enough balance for this transaction.')
+
+        return cleaned_data
+
 # TransactionFormSet will be created dynamically in the view
 # TransactionFormSet = formset_factory(TransactionForm, extra=3)

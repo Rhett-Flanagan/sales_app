@@ -1,12 +1,15 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views.generic import CreateView, UpdateView, DeleteView, ListView
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 from core.models import Customer, Transaction
 from django.db.models import Q
 from core.forms import CustomerForm, TransactionForm
 from django.forms import formset_factory
 from django.utils import timezone
 from decimal import Decimal
+from django.db import transaction as db_transaction
+from django.contrib import messages
+from django.apps import apps
 
 class CustomerCreateView(CreateView):
     model = Customer
@@ -32,18 +35,22 @@ class TransactionCreateView(CreateView):
     success_url = reverse_lazy('transaction_list')
 
     def form_valid(self, form):
-        # Save the transaction first to get an instance
-        self.object = form.save()
-        
-        # Update customer balance
-        customer = self.object.Account
-        if self.object.DC == 'D':
-            customer.Balance += self.object.Amount
-        elif self.object.DC == 'C':
-            customer.Balance -= self.object.Amount
-        customer.save()
+        try:
+            # Save the transaction first to get an instance
+            self.object = form.save()
+            
+            # Update customer balance
+            customer = self.object.Account
+            if self.object.DC == 'D':
+                customer.Balance += self.object.Amount
+            elif self.object.DC == 'C':
+                customer.Balance -= self.object.Amount
+            customer.save()
 
-        return super().form_valid(form)
+            return super().form_valid(form)
+        except Exception as e:
+            form.add_error(None, f'An error occurred: {e}')
+            return self.form_invalid(form)
 
 class TransactionUpdateView(UpdateView):
     model = Transaction
@@ -52,29 +59,33 @@ class TransactionUpdateView(UpdateView):
     success_url = reverse_lazy('transaction_list')
 
     def form_valid(self, form):
-        # Get the original transaction object before saving changes
-        original_transaction = self.get_object()
+        try:
+            # Get the original transaction object before saving changes
+            original_transaction = self.get_object()
 
-        # Save the updated transaction
-        self.object = form.save()
+            # Save the updated transaction
+            self.object = form.save()
 
-        # Revert original transaction's impact on old customer's balance
-        original_customer = original_transaction.Account
-        if original_transaction.DC == 'D':
-            original_customer.Balance -= original_transaction.Amount
-        elif original_transaction.DC == 'C':
-            original_customer.Balance += original_transaction.Amount
-        original_customer.save()
+            # Revert original transaction's impact on old customer's balance
+            original_customer = original_transaction.Account
+            if original_transaction.DC == 'D':
+                original_customer.Balance -= original_transaction.Amount
+            elif original_transaction.DC == 'C':
+                original_customer.Balance += original_transaction.Amount
+            original_customer.save()
 
-        # Apply new transaction's impact on new customer's balance
-        new_customer = Customer.objects.get(pk=self.object.Account.pk)
-        if self.object.DC == 'D':
-            new_customer.Balance += self.object.Amount
-        elif self.object.DC == 'C':
-            new_customer.Balance -= self.object.Amount
-        new_customer.save()
+            # Apply new transaction's impact on new customer's balance
+            new_customer = Customer.objects.get(pk=self.object.Account.pk)
+            if self.object.DC == 'D':
+                new_customer.Balance += self.object.Amount
+            elif self.object.DC == 'C':
+                new_customer.Balance -= self.object.Amount
+            new_customer.save()
 
-        return super().form_valid(form)
+            return super().form_valid(form)
+        except Exception as e:
+            form.add_error(None, f'An error occurred: {e}')
+            return self.form_invalid(form)
 
 class TransactionDeleteView(DeleteView):
     model = Transaction
@@ -82,18 +93,39 @@ class TransactionDeleteView(DeleteView):
     success_url = reverse_lazy('transaction_list')
 
     def form_valid(self, form):
-        # Get the transaction object before deleting
-        transaction_to_delete = self.get_object()
-        customer = transaction_to_delete.Account
+        try:
+            # Get the transaction object before deleting
+            transaction_to_delete = self.get_object()
+            customer = transaction_to_delete.Account
 
-        # Revert the transaction's impact on the customer's balance
-        if transaction_to_delete.DC == 'D':
-            customer.Balance -= transaction_to_delete.Amount
-        elif transaction_to_delete.DC == 'C':
-            customer.Balance += transaction_to_delete.Amount
-        customer.save()
+            # Revert the transaction's impact on the customer's balance
+            if transaction_to_delete.DC == 'D':
+                customer.Balance -= transaction_to_delete.Amount
+            elif transaction_to_delete.DC == 'C':
+                customer.Balance += transaction_to_delete.Amount
+            customer.save()
 
-        return super().form_valid(form)
+            return super().form_valid(form)
+        except Exception as e:
+            # This is a simple way to show the error on the confirmation page
+            # A more sophisticated approach would be to use Django's messaging framework
+            return render(self.request, self.template_name, {'object': self.get_object(), 'error': str(e)})
+
+def get_fuzzy_q_objects(term, fields):
+    q_objects = Q()
+    variations = [term]
+
+    # Add common misspellings or variations
+    if term.lower() == 'alice':
+        variations.extend(['alis', 'alyce'])
+    elif term.lower() == 'smith':
+        variations.extend(['smyth', 'smithe'])
+    # Add more variations as needed
+
+    for var in variations:
+        for field in fields:
+            q_objects |= Q(**{f'{field}__icontains': var})
+    return q_objects
 
 def customer_list(request):
     query = request.GET.get('q')
@@ -104,10 +136,10 @@ def customer_list(request):
 
     if query:
         search_terms = query.split()
-        q_objects = Q()
+        combined_q_objects = Q()
         for term in search_terms:
-            q_objects |= Q(Name__icontains=term) | Q(Account__icontains=term)
-        customers = customers.filter(q_objects)
+            combined_q_objects &= get_fuzzy_q_objects(term, ['Name', 'Account'])
+        customers = customers.filter(combined_q_objects)
 
     # Apply sorting
     if order == 'desc':
@@ -121,6 +153,8 @@ def customer_list(request):
         'order': order
     })
 
+from django.contrib import messages
+
 def transaction_list(request):
     query = request.GET.get('q')
     start_date_str = request.GET.get('start_date')
@@ -132,17 +166,17 @@ def transaction_list(request):
 
     if query:
         search_terms = query.split()
-        q_objects = Q()
+        combined_q_objects = Q()
         for term in search_terms:
-            q_objects |= Q(Account__Account__icontains=term) | Q(Amount__icontains=term) | Q(DC__icontains=term) | Q(Reference__icontains=term)
-        transactions = transactions.filter(q_objects)
+            combined_q_objects &= get_fuzzy_q_objects(term, ['Account__Account', 'Amount', 'DC', 'Reference'])
+        transactions = transactions.filter(combined_q_objects)
 
     if start_date_str:
         try:
             start_date = timezone.datetime.strptime(start_date_str, '%Y-%m-%d')
             transactions = transactions.filter(Date__gte=start_date)
         except ValueError:
-            pass # Handle invalid date format silently or raise an error
+            messages.error(request, 'Invalid start date format. Please use YYYY-MM-DD.')
 
     if end_date_str:
         try:
@@ -150,7 +184,7 @@ def transaction_list(request):
             # To include the entire end day, add one day and search for less than that date
             transactions = transactions.filter(Date__lt=end_date + timezone.timedelta(days=1))
         except ValueError:
-            pass # Handle invalid date format silently or raise an error
+            messages.error(request, 'Invalid end date format. Please use YYYY-MM-DD.')
 
     # Apply sorting
     if order == 'desc':
@@ -166,7 +200,10 @@ def transaction_list(request):
         'order': order
     })
 
-# Removed print_transactions view
+
+
+
+
 
 def enquiry_customer_list(request):
     customers = Customer.objects.all()
@@ -195,6 +232,8 @@ def enquiry_transaction_details(request, account_number):
         'order': order
     })
 
+from django.db import transaction as db_transaction
+
 def bulk_add_transactions(request):
     num_forms = request.GET.get('num_forms', 3) # Default to 3 forms
     try:
@@ -207,24 +246,29 @@ def bulk_add_transactions(request):
     if request.method == 'POST':
         formset = DynamicTransactionFormSet(request.POST)
         if formset.is_valid():
-            customer_balances = {}
-            for form in formset:
-                if form.has_changed(): # Only process forms that have data
-                    transaction = form.save(commit=False)
-                    customer = transaction.Account
-                    if customer.pk not in customer_balances:
-                        customer_balances[customer.pk] = customer.Balance
+            try:
+                with db_transaction.atomic():
+                    customer_balances = {}
+                    for form in formset:
+                        if form.has_changed(): # Only process forms that have data
+                            transaction = form.save(commit=False)
+                            customer = transaction.Account
+                            if customer.pk not in customer_balances:
+                                customer_balances[customer.pk] = customer.Balance
 
-                    if transaction.DC == 'D':
-                        customer_balances[customer.pk] += transaction.Amount
-                    elif transaction.DC == 'C':
-                        customer_balances[customer.pk] -= transaction.Amount
-                    transaction.save()
+                            if transaction.DC == 'D':
+                                customer_balances[customer.pk] += transaction.Amount
+                            elif transaction.DC == 'C':
+                                customer_balances[customer.pk] -= transaction.Amount
+                            transaction.save()
 
-            for pk, balance in customer_balances.items():
-                Customer.objects.filter(pk=pk).update(Balance=balance)
+                    for pk, balance in customer_balances.items():
+                        Customer.objects.filter(pk=pk).update(Balance=balance)
 
-            return redirect('transaction_list')
+                    return redirect('transaction_list')
+            except Exception as e:
+                formset.non_form_errors().append(f'An error occurred during bulk add: {e}')
     else:
         formset = DynamicTransactionFormSet()
     return render(request, 'core/bulk_add_transactions.html', {'formset': formset, 'num_forms': num_forms})
+

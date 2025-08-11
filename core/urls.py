@@ -15,4 +15,4 @@ urlpatterns = [
 
     path('enquiries/', views.enquiry_customer_list, name='enquiry_customer_list'),
     path('enquiries/<str:account_number>/details/', views.enquiry_transaction_details, name='enquiry_transaction_details'),
-]
+                ]
