@@ -104,6 +104,14 @@
         {% csrf_token %}
         {{ formset.management_form }}
 
+        {% if formset.non_form_errors %}
+            <ul class="errorlist">
+                {% for error in formset.non_form_errors %}
+                    <li>{{ error }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+
         <div class="formset-header">
             <div>Account</div>
             <div>Date</div>

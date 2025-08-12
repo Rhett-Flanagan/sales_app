@@ -48,6 +48,9 @@
 </head>
 <body>
     <h1>Delete Transaction</h1>
+    {% if error %}
+        <p style="color: red;">Error: {{ error }}</p>
+    {% endif %}
     <p>Are you sure you want to delete transaction number "{{ object.Number }}"?</p>
     <form method="post">
         {% csrf_token %}

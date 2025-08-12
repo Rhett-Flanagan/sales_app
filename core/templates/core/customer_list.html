@@ -1,4 +1,5 @@
 {% extends 'core/base.html' %}
+{% load custom_filters %}
 
 {% block title %}Customer List{% endblock %}
 
@@ -16,18 +17,18 @@
     <div class="customer-grid">
         <div class="grid-header">
             <div>
-                <a href="{% url 'customer_list' %}?sort_by=Account&order={% if sort_by == 'Account' and order == 'asc' %}desc{% else %}asc{% endif %}{% if query %}&q={{ query }}{% endif %}">
-                    Account {% if sort_by == 'Account' %}{% if order == 'asc' %}▲{% else %}▼{% endif %}{% endif %}
+                <a href="{% url 'customer_list' %}?sort_by=Account&order={% if 'Account' in sort_fields and sort_orders|first == 'asc' %}desc{% else %}asc{% endif %}{% for field, order in sort_fields|zip_lists:sort_orders %}{% if field != 'Account' %}&sort_by={{ field }}&order={{ order }}{% endif %}{% endfor %}{% if query %}&q={{ query }}{% endif %}">
+                    Account {% if 'Account' in sort_fields %}{% for field, order in sort_fields|zip_lists:sort_orders %}{% if field == 'Account' %}{% if order == 'asc' %}▲{% else %}▼{% endif %}{% endif %}{% endfor %}{% endif %}
                 </a>
             </div>
             <div>
-                <a href="{% url 'customer_list' %}?sort_by=Name&order={% if sort_by == 'Name' and order == 'asc' %}desc{% else %}asc{% endif %}{% if query %}&q={{ query }}{% endif %}">
-                    Name {% if sort_by == 'Name' %}{% if order == 'asc' %}▲{% else %}▼{% endif %}{% endif %}
+                <a href="{% url 'customer_list' %}?sort_by=Name&order={% if 'Name' in sort_fields and sort_orders|first == 'asc' %}desc{% else %}asc{% endif %}{% for field, order in sort_fields|zip_lists:sort_orders %}{% if field != 'Name' %}&sort_by={{ field }}&order={{ order }}{% endif %}{% endfor %}{% if query %}&q={{ query }}{% endif %}">
+                    Name {% if 'Name' in sort_fields %}{% for field, order in sort_fields|zip_lists:sort_orders %}{% if field == 'Name' %}{% if order == 'asc' %}▲{% else %}▼{% endif %}{% endif %}{% endfor %}{% endif %}
                 </a>
             </div>
             <div>
-                <a href="{% url 'customer_list' %}?sort_by=Balance&order={% if sort_by == 'Balance' and order == 'asc' %}desc{% else %}asc{% endif %}{% if query %}&q={{ query }}{% endif %}">
-                    Balance {% if sort_by == 'Balance' %}{% if order == 'asc' %}▲{% else %}▼{% endif %}{% endif %}
+                <a href="{% url 'customer_list' %}?sort_by=Balance&order={% if 'Balance' in sort_fields and sort_orders|first == 'asc' %}desc{% else %}asc{% endif %}{% for field, order in sort_fields|zip_lists:sort_orders %}{% if field != 'Balance' %}&sort_by={{ field }}&order={{ order }}{% endif %}{% endfor %}{% if query %}&q={{ query }}{% endif %}">
+                    Balance {% if 'Balance' in sort_fields %}{% for field, order in sort_fields|zip_lists:sort_orders %}{% if field == 'Balance' %}{% if order == 'asc' %}▲{% else %}▼{% endif %}{% endif %}{% endfor %}{% endif %}
                 </a>
             </div>
             <div>Actions</div>

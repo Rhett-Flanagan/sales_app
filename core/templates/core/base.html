@@ -152,6 +152,33 @@
         .delete-button:hover {
             background-color: #c82333;
         }
+
+        .messages {
+            list-style: none;
+            padding: 10px;
+            margin: 10px 20px;
+            border-radius: 5px;
+        }
+        .messages li {
+            padding: 8px;
+            margin-bottom: 5px;
+            border-radius: 4px;
+        }
+        .messages .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .messages .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .messages .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
     </style>
 </head>
 <body>
@@ -161,6 +188,14 @@
         <a href="{% url 'enquiry_customer_list' %}">Enquiries</a>
         <a href="{% url 'admin:index' %}">Admin</a>
     </div>
+
+    {% if messages %}
+        <ul class="messages">
+            {% for message in messages %}
+                <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
 
     <div class="content">
         {% block content %}

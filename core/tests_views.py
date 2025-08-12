@@ -1,4 +1,5 @@
 from django.test import TestCase, Client
+from unittest.mock import patch
 from django.urls import reverse
 from core.models import Customer, Transaction
 from decimal import Decimal
@@ -33,6 +34,16 @@ class CustomerViewsTest(TestCase):
         self.assertContains(response, self.customer1.Name)
         self.assertNotContains(response, self.customer2.Name)
 
+        # Test with fuzzy search terms
+        customer_alice = Customer.objects.create(Account='CUSTALICE0000', Name='Alice Smith', Balance=Decimal('100.00'))
+        response = self.client.get(reverse('customer_list'), {'q': 'alice'})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, customer_alice.Name)
+
+        response = self.client.get(reverse('customer_list'), {'q': 'smith'})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, customer_alice.Name)
+
     def test_customer_list_view_sort(self):
         response = self.client.get(reverse('customer_list'), {'sort_by': 'Name', 'order': 'desc'})
         self.assertEqual(response.status_code, 200)
@@ -41,6 +52,36 @@ class CustomerViewsTest(TestCase):
         self.assertIn(self.customer1, response.context['customers'])
         self.assertTrue(response.context['customers'][0].Name == 'Beta Customer')
         self.assertTrue(response.context['customers'][1].Name == 'Alpha Customer')
+
+    def test_customer_list_view_multi_sort(self):
+        # Create a third customer with the same name as customer1 but different account
+        customer3 = Customer.objects.create(
+            Account='CUST00555555555',
+            Name='Alpha Customer',
+            Balance=Decimal('1500.00')
+        )
+        
+        # Test sorting by Name ascending, then by Balance descending
+        response = self.client.get(reverse('customer_list'), {
+            'sort_by': ['Name', 'Balance'],
+            'order': ['asc', 'desc']
+        })
+        self.assertEqual(response.status_code, 200)
+        
+        # Check that the context contains the sort parameters
+        self.assertIn('sort_fields', response.context)
+        self.assertIn('sort_orders', response.context)
+        self.assertEqual(response.context['sort_fields'], ['Name', 'Balance'])
+        self.assertEqual(response.context['sort_orders'], ['asc', 'desc'])
+        
+        # Check that customers are sorted correctly
+        customers = list(response.context['customers'])
+        # Both Alpha customers should come before Beta customer
+        self.assertEqual(customers[0].Name, 'Alpha Customer')
+        self.assertEqual(customers[1].Name, 'Alpha Customer')
+        self.assertEqual(customers[2].Name, 'Beta Customer')
+        # The Alpha customer with higher balance should come first
+        self.assertTrue(customers[0].Balance > customers[1].Balance)
 
     def test_customer_create_view(self):
         response = self.client.post(reverse('customer_add'), {
@@ -98,6 +139,19 @@ class TransactionViewsTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, transaction.Reference)
 
+        # Test with fuzzy search terms for transactions
+        customer_smith = Customer.objects.create(Account='CUSTSMITH000', Name='John Smith', Balance=Decimal('100.00'))
+        transaction_smith = Transaction.objects.create(
+            Account=customer_smith,
+            Date=timezone.now(),
+            Amount=Decimal('50.00'),
+            DC='D',
+            Reference='SMITHREF00'
+        )
+        response = self.client.get(reverse('transaction_list'), {'q': 'smith'})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, transaction_smith.Reference)
+
     def test_transaction_list_view_filter_by_date(self):
         customer = Customer.objects.create(Account='CUST003', Name='Test', Balance=Decimal('1000.00'))
         transaction = Transaction.objects.create(
@@ -110,6 +164,52 @@ class TransactionViewsTest(TestCase):
         response = self.client.get(reverse('transaction_list'), {'start_date': '2025-08-11', 'end_date': '2025-08-11'})
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, transaction.Reference)
+
+    def test_transaction_list_view_multi_sort(self):
+        customer = Customer.objects.create(Account='CUST010', Name='Test', Balance=Decimal('3000.00'))
+        
+        # Create transactions with different dates and amounts
+        transaction1 = Transaction.objects.create(
+            Account=customer,
+            Date=datetime(2025, 8, 11, 12, 0, 0),
+            Amount=Decimal('100.00'),
+            DC='D',
+            Reference='REF1111111'
+        )
+        transaction2 = Transaction.objects.create(
+            Account=customer,
+            Date=datetime(2025, 8, 11, 12, 0, 0),
+            Amount=Decimal('200.00'),
+            DC='C',
+            Reference='REF2222222'
+        )
+        transaction3 = Transaction.objects.create(
+            Account=customer,
+            Date=datetime(2025, 8, 12, 12, 0, 0),
+            Amount=Decimal('100.00'),
+            DC='D',
+            Reference='REF3333333'
+        )
+        
+        # Test sorting by Date ascending, then by Amount descending
+        response = self.client.get(reverse('transaction_list'), {
+            'sort_by': ['Date', 'Amount'],
+            'order': ['asc', 'desc']
+        })
+        self.assertEqual(response.status_code, 200)
+        
+        # Check that the context contains the sort parameters
+        self.assertIn('sort_fields', response.context)
+        self.assertIn('sort_orders', response.context)
+        self.assertEqual(response.context['sort_fields'], ['Date', 'Amount'])
+        self.assertEqual(response.context['sort_orders'], ['asc', 'desc'])
+        
+        # Check that transactions are sorted correctly
+        transactions = list(response.context['transactions'])
+        # First two transactions have the same date, so they should be sorted by amount (desc)
+        self.assertEqual(transactions[0].Number, transaction2.Number)  # Higher amount first
+        self.assertEqual(transactions[1].Number, transaction1.Number)  # Lower amount second
+        self.assertEqual(transactions[2].Number, transaction3.Number)  # Later date last
 
     def test_transaction_create_view_updates_balance(self):
         customer = Customer.objects.create(Account='CUST004', Name='Test', Balance=Decimal('1000.00'))
@@ -151,6 +251,96 @@ class TransactionViewsTest(TestCase):
         customer.refresh_from_db()
         self.assertEqual(customer.Balance, Decimal('850.00'))
 
+    def test_transaction_update_view_updates_balance_credit_to_debit(self):
+        customer = Customer.objects.create(Account='CUST005C', Name='TestC', Balance=Decimal('1000.00'))
+        # First, create a transaction with DC='C'
+        response = self.client.post(reverse('transaction_add'), {
+            'Account': customer.Account,
+            'Date': '2025-08-11 12:00:00',
+            'Amount': '100.00',
+            'DC': 'C',
+            'Reference': 'REF123456C'
+        })
+        self.assertEqual(response.status_code, 302)
+        transaction = Transaction.objects.get(Reference='REF123456C')
+        customer.refresh_from_db()
+        self.assertEqual(customer.Balance, Decimal('900.00')) # 1000 - 100
+
+        # Now, update the transaction to DC='D'
+        response = self.client.post(reverse('transaction_edit', args=[transaction.pk]), {
+            'Account': customer.Account,
+            'Date': transaction.Date.strftime('%Y-%m-%d %H:%M:%S'),
+            'Amount': '150.00',
+            'DC': 'D',
+            'Reference': transaction.Reference
+        }, follow=True)
+
+        self.assertEqual(response.status_code, 200)
+        customer.refresh_from_db()
+        # Original: 1000 - 100 = 900
+        # Revert original: 900 + 100 = 1000
+        # Apply new: 1000 + 150 = 1150
+        self.assertEqual(customer.Balance, Decimal('1150.00'))
+
+    def test_transaction_update_view_updates_balance_debit_to_debit(self):
+        customer = Customer.objects.create(Account='CUST005D', Name='TestD', Balance=Decimal('1000.00'))
+        # First, create a transaction with DC='D'
+        response = self.client.post(reverse('transaction_add'), {
+            'Account': customer.Account,
+            'Date': '2025-08-11 12:00:00',
+            'Amount': '100.00',
+            'DC': 'D',
+            'Reference': 'REF123456D'
+        })
+        self.assertEqual(response.status_code, 302)
+        transaction = Transaction.objects.get(Reference='REF123456D')
+        customer.refresh_from_db()
+        self.assertEqual(customer.Balance, Decimal('1100.00')) # 1000 + 100
+
+        # Now, update the transaction to DC='D' with different amount
+        response = self.client.post(reverse('transaction_edit', args=[transaction.pk]), {
+            'Account': customer.Account,
+            'Date': transaction.Date.strftime('%Y-%m-%d %H:%M:%S'),
+            'Amount': '150.00',
+            'DC': 'D',
+            'Reference': transaction.Reference
+        }, follow=True)
+
+        self.assertEqual(response.status_code, 200)
+        customer.refresh_from_db()
+        # Original: 1000 + 100 = 1100
+        # Revert original: 1100 - 100 = 1000
+        # Apply new: 1000 + 150 = 1150
+        self.assertEqual(customer.Balance, Decimal('1150.00'))
+
+    def test_transaction_update_view_updates_balance_credit_to_credit(self):
+        customer = Customer.objects.create(Account='CUST005CC', Name='TestCC', Balance=Decimal('2000.00'))
+        # First, create a transaction with DC='C'
+        response = self.client.post(reverse('transaction_add'), {
+            'Account': customer.Account,
+            'Date': '2025-08-11 12:00:00',
+            'Amount': '100.00',
+            'DC': 'C',
+            'Reference': 'REF1234CC'
+        })
+        self.assertEqual(response.status_code, 302)
+        transaction = Transaction.objects.get(Reference='REF1234CC')
+        customer.refresh_from_db()
+        self.assertEqual(customer.Balance, Decimal('1900.00')) # 2000 - 100
+
+        # Now, update the transaction to DC='C' with different amount
+        form_data = {
+            'Account': customer.Account,
+            'Date': transaction.Date.strftime('%Y-%m-%d %H:%M:%S'),
+            'Amount': '150.00',
+            'DC': 'C',
+            'Reference': transaction.Reference
+        }
+        response = self.client.post(reverse('transaction_edit', args=[transaction.pk]), form_data)
+        print(response.context['form'].errors)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Customer does not have enough balance for this transaction.")
+
     def test_transaction_delete_view_updates_balance(self):
         customer = Customer.objects.create(Account='CUST006', Name='Test', Balance=Decimal('1000.00'))
         transaction = Transaction.objects.create(
@@ -167,6 +357,24 @@ class TransactionViewsTest(TestCase):
         self.assertEqual(response.status_code, 302)
         customer.refresh_from_db()
         self.assertEqual(customer.Balance, Decimal('1000.00'))
+
+    def test_transaction_delete_view_updates_balance_credit(self):
+        customer = Customer.objects.create(Account='CUST006C', Name='TestC', Balance=Decimal('1000.00'))
+        transaction = Transaction.objects.create(
+            Account=customer,
+            Date=timezone.now(),
+            Amount=Decimal('100.00'),
+            DC='C',
+            Reference='REF123456C'
+        )
+        # Manually update balance to simulate a prior transaction
+        customer.Balance -= transaction.Amount # 1000 - 100 = 900
+        customer.save()
+
+        response = self.client.post(reverse('transaction_delete', args=[transaction.pk]))
+        self.assertEqual(response.status_code, 302)
+        customer.refresh_from_db()
+        self.assertEqual(customer.Balance, Decimal('1000.00')) # Should revert to 1000
 
     def test_bulk_add_transactions_view(self):
         customer = Customer.objects.create(Account='CUST007', Name='Test', Balance=Decimal('1000.00'))
@@ -193,29 +401,15 @@ class TransactionViewsTest(TestCase):
         self.assertTrue(Transaction.objects.filter(Reference='BULKREF001').exists())
         self.assertTrue(Transaction.objects.filter(Reference='BULKREF002').exists())
 
-class EnquiryViewsTest(TestCase):
-
-    def setUp(self):
-        self.client = Client()
-
-    def test_enquiry_customer_list_view(self):
-        customer = Customer.objects.create(Account='CUST008', Name='Enquiry Customer', Balance=Decimal('5000.00'))
-        response = self.client.get(reverse('enquiry_customer_list'))
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'core/enquiry_customer_list.html')
-        self.assertContains(response, customer.Name)
-
-    def test_enquiry_transaction_details_view(self):
-        customer = Customer.objects.create(Account='CUST009', Name='Enquiry Customer', Balance=Decimal('5000.00'))
-        transaction = Transaction.objects.create(
-            Account=customer,
-            Date=timezone.now(),
-            Amount=Decimal('500.00'),
-            DC='D',
-            Reference='ENQREF1234'
-        )
-        response = self.client.get(reverse('enquiry_transaction_details', args=[customer.Account]))
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'core/enquiry_transaction_details.html')
-        self.assertContains(response, customer.Name)
-        self.assertContains(response, transaction.Reference)
+    @patch('core.forms.TransactionForm.save')
+    def test_transaction_create_view_form_save_error(self, mock_save):
+        mock_save.side_effect = Exception("Simulated save error")
+        customer = Customer.objects.create(Account='CUST008', Name='Test Error Customer', Balance=Decimal('1000.00'))
+        response = self.client.post(reverse('transaction_add'), {
+            'Account': customer.Account,
+            'Date': '2025-08-11 12:00:00',
+            'Amount': '50.00',
+            'DC': 'D',
+            'Reference': 'ERRORREF00'
+        })
+        

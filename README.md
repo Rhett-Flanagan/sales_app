@@ -47,12 +47,16 @@ This is a Django-based sales transaction system.
 
 ### Customer Management (CRUD)
 *   **List Customers:** Access at `http://127.0.0.1:8000/customers/`
+    * Multi-sort: Click on column headers to sort by that column. Click again to reverse the sort order.
+    * Multiple column sorting: Hold Shift while clicking column headers to sort by multiple columns.
 *   **Add New Customer:** Click the "Add New Customer" button on the customer list page.
 *   **Edit Customer:** Click the "Edit" link next to a customer on the list page. Only the Name field is editable.
 *   **Delete Customer:** Click the "Delete" link next to a customer on the list page.
 
 ### Transaction Management (CRUD)
 *   **List Transactions:** Access at `http://127.0.0.1:8000/transactions/`
+    * Multi-sort: Click on column headers to sort by that column. Click again to reverse the sort order.
+    * Multiple column sorting: Hold Shift while clicking column headers to sort by multiple columns.
 *   **Add New Transaction:** Click the "Add New Transaction" button on the transaction list page.
 *   **Bulk Add Transactions:** Click the "Bulk Add Transactions" button on the transaction list page. You can specify the number of transaction forms to display.
 *   **Edit Transaction:** Click the "Edit" link next to a transaction on the list page.

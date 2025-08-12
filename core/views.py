@@ -1,6 +1,6 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views.generic import CreateView, UpdateView, DeleteView, ListView
-from django.urls import reverse_lazy, reverse
+from django.urls import reverse_lazy
 from core.models import Customer, Transaction
 from django.db.models import Q
 from core.forms import CustomerForm, TransactionForm
@@ -9,7 +9,6 @@ from django.utils import timezone
 from decimal import Decimal
 from django.db import transaction as db_transaction
 from django.contrib import messages
-from django.apps import apps
 
 class CustomerCreateView(CreateView):
     model = Customer
@@ -129,8 +128,14 @@ def get_fuzzy_q_objects(term, fields):
 
 def customer_list(request):
     query = request.GET.get('q')
-    sort_by = request.GET.get('sort_by', 'Account') # Default sort by Account
-    order = request.GET.get('order', 'asc') # Default order ascending
+    # Handle multi-sort parameters
+    sort_fields = request.GET.getlist('sort_by')
+    sort_orders = request.GET.getlist('order')
+    
+    # If no sort fields specified, use default
+    if not sort_fields:
+        sort_fields = ['Account']
+        sort_orders = ['asc']
 
     customers = Customer.objects.all()
 
@@ -141,16 +146,20 @@ def customer_list(request):
             combined_q_objects &= get_fuzzy_q_objects(term, ['Name', 'Account'])
         customers = customers.filter(combined_q_objects)
 
-    # Apply sorting
-    if order == 'desc':
-        sort_by = '-' + sort_by
-    customers = customers.order_by(sort_by)
+    # Apply multi-field sorting
+    sort_params = []
+    for field, order in zip(sort_fields, sort_orders):
+        if order == 'desc':
+            sort_params.append('-' + field)
+        else:
+            sort_params.append(field)
+    customers = customers.order_by(*sort_params)
 
     return render(request, 'core/customer_list.html', {
         'customers': customers,
         'query': query,
-        'sort_by': sort_by.replace('-', ''), # Pass original field name to template
-        'order': order
+        'sort_fields': sort_fields,
+        'sort_orders': sort_orders
     })
 
 from django.contrib import messages
@@ -159,8 +168,14 @@ def transaction_list(request):
     query = request.GET.get('q')
     start_date_str = request.GET.get('start_date')
     end_date_str = request.GET.get('end_date')
-    sort_by = request.GET.get('sort_by', 'Number') # Default sort by Number
-    order = request.GET.get('order', 'asc') # Default order ascending
+    # Handle multi-sort parameters
+    sort_fields = request.GET.getlist('sort_by')
+    sort_orders = request.GET.getlist('order')
+    
+    # If no sort fields specified, use default
+    if not sort_fields:
+        sort_fields = ['Number']
+        sort_orders = ['asc']
 
     transactions = Transaction.objects.all()
 
@@ -186,18 +201,22 @@ def transaction_list(request):
         except ValueError:
             messages.error(request, 'Invalid end date format. Please use YYYY-MM-DD.')
 
-    # Apply sorting
-    if order == 'desc':
-        sort_by = '-' + sort_by
-    transactions = transactions.order_by(sort_by)
+    # Apply multi-field sorting
+    sort_params = []
+    for field, order in zip(sort_fields, sort_orders):
+        if order == 'desc':
+            sort_params.append('-' + field)
+        else:
+            sort_params.append(field)
+    transactions = transactions.order_by(*sort_params)
 
     return render(request, 'core/transaction_list.html', {
         'transactions': transactions,
         'query': query,
         'start_date': start_date_str,
         'end_date': end_date_str,
-        'sort_by': sort_by.replace('-', ''), # Pass original field name to template
-        'order': order
+        'sort_fields': sort_fields,
+        'sort_orders': sort_orders
     })
 
 

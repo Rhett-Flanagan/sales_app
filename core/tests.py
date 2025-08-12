@@ -51,6 +51,29 @@ class CustomerModelTest(TestCase):
         )
         self.assertEqual(str(customer), 'Another Customer')
 
+from core.forms import TransactionForm
+
+class TransactionFormTest(TestCase):
+
+    def setUp(self):
+        self.customer = Customer.objects.create(
+            Account='CUST000000001',
+            Name='Test Customer For Form',
+            Balance=Decimal('100.00')
+        )
+
+    def test_transaction_form_insufficient_balance(self):
+        form_data = {
+            'Account': self.customer.Account,
+            'Date': timezone.now(),
+            'Amount': Decimal('150.00'),
+            'DC': 'C',
+            'Reference': 'FORMREF123'
+        }
+        form = TransactionForm(data=form_data)
+        self.assertFalse(form.is_valid())
+        self.assertIn('Customer does not have enough balance for this transaction.', form.non_field_errors())
+
 class TransactionModelTest(TestCase):
 
     def setUp(self):
