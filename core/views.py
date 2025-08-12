@@ -1,13 +1,21 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from django.views.generic import CreateView, UpdateView, DeleteView, ListView
+from django.views.generic import CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy
 from core.models import Customer, Transaction
 from django.db.models import Q
 from core.forms import CustomerForm, TransactionForm
 from django.forms import formset_factory
 from django.utils import timezone
-from decimal import Decimal
+from django.shortcuts import render, get_object_or_404, redirect
+from django.views.generic import CreateView, UpdateView, DeleteView
+from django.urls import reverse_lazy
+from core.models import Customer, Transaction
+from django.db.models import Q
+from core.forms import CustomerForm, TransactionForm
+from django.forms import formset_factory
+from django.utils import timezone
 from django.db import transaction as db_transaction
+from django.contrib import messages
 from django.contrib import messages
 
 class CustomerCreateView(CreateView):
@@ -37,7 +45,7 @@ class TransactionCreateView(CreateView):
         try:
             # Save the transaction first to get an instance
             self.object = form.save()
-            
+
             # Update customer balance
             customer = self.object.Account
             if self.object.DC == 'D':
@@ -51,6 +59,9 @@ class TransactionCreateView(CreateView):
             form.add_error(None, f'An error occurred: {e}')
             return self.form_invalid(form)
 
+    def form_invalid(self, form):
+        return super().form_invalid(form)
+
 class TransactionUpdateView(UpdateView):
     model = Transaction
     form_class = TransactionForm # Use custom form
@@ -58,33 +69,36 @@ class TransactionUpdateView(UpdateView):
     success_url = reverse_lazy('transaction_list')
 
     def form_valid(self, form):
-        try:
-            # Get the original transaction object before saving changes
-            original_transaction = self.get_object()
+        # Get the original transaction object before saving changes
+        original_transaction = self.get_object()
 
-            # Save the updated transaction
-            self.object = form.save()
+        # Save the updated transaction
+        self.object = form.save()
 
-            # Revert original transaction's impact on old customer's balance
-            original_customer = original_transaction.Account
-            if original_transaction.DC == 'D':
-                original_customer.Balance -= original_transaction.Amount
-            elif original_transaction.DC == 'C':
-                original_customer.Balance += original_transaction.Amount
-            original_customer.save()
+        # Revert original transaction's impact on old customer's balance
+        original_customer = original_transaction.Account
+        if original_transaction.DC == 'D':
+            original_customer.Balance -= original_transaction.Amount
+        elif original_transaction.DC == 'C':
+            original_customer.Balance += original_transaction.Amount
+        original_customer.save()
 
-            # Apply new transaction's impact on new customer's balance
-            new_customer = Customer.objects.get(pk=self.object.Account.pk)
-            if self.object.DC == 'D':
-                new_customer.Balance += self.object.Amount
-            elif self.object.DC == 'C':
-                new_customer.Balance -= self.object.Amount
-            new_customer.save()
+        # Apply new transaction's impact on new customer's balance
+        # Refresh the customer object from database to get the correct balance
+        new_customer = self.object.Account
+        new_customer.refresh_from_db()
+        if self.object.DC == 'D':
+            new_customer.Balance += self.object.Amount
+        elif self.object.DC == 'C':
+            new_customer.Balance -= self.object.Amount
+        new_customer.save()
 
-            return super().form_valid(form)
-        except Exception as e:
-            form.add_error(None, f'An error occurred: {e}')
-            return self.form_invalid(form)
+        return super().form_valid(form)
+
+    def form_invalid(self, form):
+        # This method is called when the form is invalid
+        # We want to render the form again with error messages
+        return self.render_to_response(self.get_context_data(form=form))
 
 class TransactionDeleteView(DeleteView):
     model = Transaction
@@ -162,7 +176,6 @@ def customer_list(request):
         'sort_orders': sort_orders
     })
 
-from django.contrib import messages
 
 def transaction_list(request):
     query = request.GET.get('q')
@@ -251,7 +264,6 @@ def enquiry_transaction_details(request, account_number):
         'order': order
     })
 
-from django.db import transaction as db_transaction
 
 def bulk_add_transactions(request):
     num_forms = request.GET.get('num_forms', 3) # Default to 3 forms
