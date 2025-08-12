@@ -7,6 +7,7 @@
     <h1>Transaction List</h1>
 
     <a href="{% url 'transaction_add' %}" class="add-button">Add New Transaction</a>
+    <a href="{% url 'bulk_add_transactions' %}" class="add-button">Bulk Add Transactions</a>
 
     <form method="GET" action="{% url 'transaction_list' %}" class="search-form">
         <input type="text" name="q" placeholder="Search by Account, Amount, or Type" value="{{ query|default_if_none:'' }}">
